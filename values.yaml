@@ -1,121 +1,75 @@
 project: esim
 namespace: esim
-
-common:
-  affinity: {}
-  tolerations: []
-  rbac:
-    clusterRoleBindings:
-      - name: esim-role-binding
-        clusterRole: view
-        serviceAccountName: default
-        namespace: esim
-        apiGroup: rbac.authorization.k8s.io
-        kind: ServiceAccount
-
 microservices:
   esim:
     name: esim
-    deployment:
-      image: iad.ocir.io/tdecloud/tdecloud_repository/esimqr/esim
-      version: 1.1.6
-      pullPolicy: Always
-      replicas: 5
-      containerPort: 8080
-      containerHZCPort: 5701
-      volumes:
-        - name: tz-config
-          hostPath:
-            path: /usr/share/zoneinfo/
-      volumeMounts:
-        - name: tz-config
-          mountPath: /etc/localtime
-      timeZoneValue: America/Lima
-      envFromSecret:
-        - name: DATABASE_URL
-          secretKeyRef:
-            name: bd-secret-esim
-            key: bd-secret
-        - name: APIM_SECRET_KEY
-          secretKeyRef:
-            name: apim-shared-secret-esim
-            key: apim-shared-secret
-        - name: APIM_SECRET_CLIENT_ID
-          secretKeyRef:
-            name: apim-clientid-secret-esim
-            key: apim-clientid-secret
-      probe:
-        readiness:
-          path: /management/health
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          failureThreshold: 10
-        liveness:
-          path: /management/health
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          failureThreshold: 10
-      annotations:
-        reloader.stakater.com/auto: "true"
+    image: iad.ocir.io/tdecloud/tdecloud_repository/esimqr/esim
+    version: 1.1.6
+    pullPolicy: Always
+    replicaCount: 5
+    containerPort: 8080
+    containerHZCPort: 5701
+    mountPath: /etc/localtime
+    volumeName: tz-config
+    volumePath: /usr/share/zoneinfo/
+    timeZoneValue: America/Lima
+    probe:
+      readiness:
+        path: /management/health
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        failureThreshold: 10
+      liveness:
+        path: /management/health
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        failureThreshold: 10
     configmap:
       env:
         ECOSYSTEM_NAME: esimqr-prod-pe
-        DNS_LOGSTASH: "10.84.63.186:5069"
+        DNS_LOGSTASH: 10.84.63.186:5069
         IGNORE_PATTERNS: /(management|swagger|webjars|healthcheck|api/esim/).*|nio-8080|
         TZ: America/Lima
-        isDummy: "false"
+        isDummy: false
         functionRequesterIdentifier: ENPId
         functionCallIdentifier: string
-        readTimeout: "2000"
+        readTimeout: 2000
         APIM_TOKEN: https://apigee-prodint.entel.pe/auth/oauth/v2/token
         API_CREDENTIAL_TYPE: client_credentials
         PIM_SCOPE: oob
         BASE_LINK: https://esimqr-api.prodmicroservices.entel.pe/api/esim/download_image/
-        CONFIRM_ORDER_CONSUMER_ID: "0329AASS100555"
+        CONFIRM_ORDER_CONSUMER_ID: 0329AASS100555
         CONFIRM_ORDER_COUNTRY_CODE: PER
         CONFIRM_ORDER_APP_CODE: MIC-SER
-        RELEASE_FLAG: "false"
+        RELEASE_FLAG: false
         URL_PROVIDER_ENDPOINT: https://apigee-prodint.entel.pe/resource/physicalResource/eSimCards/v1/orders/confirm
         hazelcast_instance_name: configuracion
-        hazelcast_multicast_enabled: "false"
-        hazelcast_kubernetes_enabled: "true"
+        hazelcast_multicast_enabled: false
+        hazelcast_kubernetes_enabled: true
         hazelcast_kubernetes_namespace: esim
         hazelcast_kubernetes_service-name: hazelcast-service
         hazelcast_kubernetes_service-dns: hazelcast-service
-        hazelcast_kubernetes_instance-port: "5701"
-        CORE_POOL_SIZE: "20"
-        MAX_POOL_SIZE: "20"
-        QUEUE_CAPACITY: "20"
+        hazelcast_kubernetes_instance-port: 5701
+        CORE_POOL_SIZE: 20
+        MAX_POOL_SIZE: 20
+        QUEUE_CAPACITY: 20
     services:
       esim:
-        name: esim-service
-        protocol: http
-        type: ClusterIP
-        port: 80
-        targetPort: 8080
+         name: esim-service
+         protocol: http
+         type: ClusterIP
+         port: 80
+         targetPort: 8080
+         monitor: /management/prometheus
+         monitorInterval: 10s
       hazelcast:
-        name: hazelcast-service
-        protocol: http
-        port: 5701
-        type: ClusterIP
-        targetPort: 5701
-    serviceMonitor:
-      name: metrics-esim
-      namespace: cattle-prometheus
-      labels:
-        heritage: Tiller
-        "io.cattle.field/appId": cluster-monitoring
-        release: prometheus-operator
-      endpoints:
-        - interval: 10s
-          port: http
-          path: /management/prometheus
+         name: hazelcast-service
+         protocol: http
+         port: 5701
+         type: ClusterIP
+         targetPort: 5701
     ingress:
       domainName: esimqr-api.prodmicroservices.entel.pe
       certificateName: wildcard
-    secrets:
-      bd-secret: amJiYzpvcmFjbGU6dGhpbjpFU0lNL3pWNnVEM2NLNF9pTzFqVzVvQDE3Mi4zMC4yNi41NjoxNTIxOk1TUFJE
-      apim-clientid-secret: bmY1bE5RTlZmT0wyNHNsN3VpTWRQVThnd0R3VnFTb29ENFB4bW1jdEd3aHpoMU51
-      apim-shared-secret: U0dOOUt3TWlybExyTEJoTllyd2YzaEVycEVOcnVWNEFHTnFTdUNtZGVrd05SQUFKNUI4Q1hMZHRRNmhWRjZWTw==
 ociSecret:
   name: ocir

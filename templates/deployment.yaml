@@ -1,74 +1,102 @@
+{{- range .Values.microservices }}
+{{- $name := .name }}
+{{- with .deployment }}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    reloader.stakater.com/auto: "true"
-  name: {{ .Values.microservices.esim.name }}
-  namespace: {{ .Values.namespace }}
+  name: {{ .name | default $name }}
   labels:
-     app.kubernetes.io/name: dpl-{{ .Values.microservices.esim.services.esim.name }}
-     app.kubernetes.io/instance: dpl-{{ .Values.microservices.esim.name }}
-     app: dpl-{{ .Values.microservices.esim.name }}
+    app: {{ .name | default $name }}
+    version: {{ .version | default "v1" }}
+  {{- $data := dict "root" . "name" $name }}
+  {{- include "template.annotations" $data | indent 2 }}
 spec:
+  {{- if .minReadySeconds }}
+  minReadySeconds: {{ .minReadySeconds }}
+  {{- end }}
+  {{- if .progressDeadlineSeconds }}
+  progressDeadlineSeconds: {{ .progressDeadlineSeconds }}
+  {{- end }}
+  {{- if .revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .revisionHistoryLimit }}
+  {{- end }}
+  replicas: {{ .replicas | default 1 }}
   selector:
     matchLabels:
-      app: dpl-{{ .Values.microservices.esim.name }}
-      run: {{ .Values.microservices.esim.name }}
-  replicas: {{ .Values.microservices.esim.replicaCount }}
+      app: {{ .name | default $name }}
+      version: {{ .version | default "v1" }}
+  {{- if .strategy }}
+  strategy:
+    type: {{ .strategy.type | default "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .strategy.rollingUpdate.maxSurge | default "25%" }}
+      maxUnavailable: {{ .strategy.rollingUpdate.maxUnavailable | default "25%" }}
+  {{- end }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/instance: dpl-{{ .Values.microservices.esim.name }}
-        app: dpl-{{ .Values.microservices.esim.name }}
-        project: {{ .Values.project }}
-        run: {{ .Values.microservices.esim.name }}
+        app: {{ .name | default $name }}
+        version: {{ .version | default "v1" }}
+      {{- include "template.annotations" $data | indent 6 }}
     spec:
+      affinity:
+        {{- if .affinity }}
+        {{- toYaml .affinity | nindent 8 }}
+        {{- else }}
+        {{- toYaml $.Values.common.affinity | nindent 8 }}
+        {{- end }}
+      tolerations:
+        {{- if .tolerations }}
+        {{- range .tolerations }}
+        - key: "{{ .key }}"
+          operator: "{{ .operator }}"
+          value: "{{ .value }}"
+          effect: "{{ .effect }}"
+        {{- end }}
+        {{- else }}
+        {{- range $.Values.common.tolerations }}
+        - key: "{{ .key }}"
+          operator: "{{ .operator }}"
+          value: "{{ .value }}"
+          effect: "{{ .effect }}"
+        {{- end }}
+        {{- end }}
+      {{- with .serviceAccountName }}
+      serviceAccountName: {{ . }}
+      {{- end }}
       containers:
-        - name: {{ .Values.microservices.esim.name }}
-          image: {{ .Values.microservices.esim.image }}:{{ .Values.microservices.esim.version }}
-          imagePullPolicy: {{ .Values.microservices.esim.pullPolicy }}
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: bd-secret-{{ .Values.microservices.esim.name }}
-                  key: secret
-            - name: APIM_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: apim-shared-secret-{{ .Values.microservices.esim.name }}
-                  key: secret
-            - name: APIM_SECRET_CLIENT_ID 
-              valueFrom:
-                secretKeyRef:
-                  name: apim-clientid-secret-{{ .Values.microservices.esim.name }}
-                  key: secret
-          envFrom:
-            - configMapRef:
-                name: cm-{{ .Values.microservices.esim.name }}
-          ports:
-            - containerPort: {{ .Values.microservices.esim.containerPort }}
-            - containerPort: {{ .Values.microservices.esim.containerHZCPort }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.microservices.esim.probe.readiness.path }}
-              port: {{ .Values.microservices.esim.containerPort }}
-            initialDelaySeconds: {{ .Values.microservices.esim.probe.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.microservices.esim.probe.readiness.periodSeconds }}
-            failureThreshold: {{ .Values.microservices.esim.probe.readiness.failureThreshold }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.microservices.esim.probe.liveness.path }}
-              port: {{ .Values.microservices.esim.containerPort }}
-            initialDelaySeconds: {{ .Values.microservices.esim.probe.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.microservices.esim.probe.liveness.periodSeconds }}
-            failureThreshold: {{ .Values.microservices.esim.probe.liveness.failureThreshold }}
-          volumeMounts:
-            - name: {{ .Values.microservices.esim.volumeName }}
-              mountPath: {{ .Values.microservices.esim.mountPath }}
-      imagePullSecrets:
-        - name: {{ .Values.ociSecret.name }}
-      volumes:
-        - name: {{ .Values.microservices.esim.volumeName }}
-          hostPath:
-            path: {{ .Values.microservices.esim.volumePath }}{{ .Values.microservices.esim.timeZoneValue }}
+      - name: {{ .name | default $name }}
+        image: {{ .image }}
+        {{- with .command }}
+        command:
+        {{- range . }}
+          - {{ . }}
+        {{- end }}
+        {{- end }}
+        imagePullPolicy: Always
+        {{- if .configmap }}
+        {{- $envData := dict "root" . }}
+        {{- include "template.environment" $envData | indent 8 }}
+        {{- end }}
+        {{- if .ports }}
+        {{- include "template.ports" . | indent 8 }}
+        {{- end }}
+        {{- include "template.securityContext" . | indent 8 }}
+        {{- if .volumeMounts }}
+        {{- include "template.volumeMounts" . | indent 8 }}
+        {{- end }}
+        {{- if and .probe .probe.startup }}
+        {{- include "template.startupProbe" . | indent 8 }}
+        {{- end }}
+        {{- if and .probe .probe.liveness }}
+        {{- include "template.livenessProbe" . | indent 8 }}
+        {{- end }}
+        {{- if and .probe .probe.readiness }}
+        {{- include "template.readinessProbe" . | indent 8 }}
+        {{- end }}
+      {{- if .volumes }}
+      {{- include "template.volumes" . | indent 6 }}
+      {{- end }}
+{{- end }}
+{{- end }}

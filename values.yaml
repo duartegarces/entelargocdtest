@@ -3,7 +3,7 @@ namespace: esim
 microservices:
   esim:
     name: esim
-    image: iad.ocir.io/tdecloud/tdecloud_repository/esimqr/esim
+    image: nginx
     version: 1.1.6
     pullPolicy: Always
     replicaCount: 5

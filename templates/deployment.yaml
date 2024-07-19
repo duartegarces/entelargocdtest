@@ -66,8 +66,10 @@ spec:
           volumeMounts:
             - name: {{ .Values.microservices.esim.volumeName }}
               mountPath: {{ .Values.microservices.esim.mountPath }}
+      {{- if .imagePullSecrets }}
       imagePullSecrets:
         - name: {{ .Values.ociSecret.name }}
+      {{- end }}
       volumes:
         - name: {{ .Values.microservices.esim.volumeName }}
           hostPath:

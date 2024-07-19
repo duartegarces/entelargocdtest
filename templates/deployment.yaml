@@ -24,11 +24,6 @@ spec:
     matchLabels:
       app: {{ .name | default $name }}
       version: {{ .version | default "v1" }}
-      {{- with .matchLabels }}
-        {{- range $key, $value := . }}
-        {{ $key }}: {{ $value }}
-        {{- end }}
-      {{- end }}
   {{- if .strategy }}
   strategy:
     type: {{ .strategy.type | default "RollingUpdate" }}

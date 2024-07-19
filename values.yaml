@@ -7,7 +7,7 @@ microservices:
     version: latest
     pullPolicy: Always
     replicaCount: 5
-    containerPort: 8080
+    containerPort: 80
     containerHZCPort: 5701
     mountPath: /etc/localtime
     volumeName: tz-config
@@ -15,12 +15,12 @@ microservices:
     timeZoneValue: America/Lima
     probe:
       readiness:
-        path: /management/health
+        path: /
         initialDelaySeconds: 30
         periodSeconds: 10
         failureThreshold: 10
       liveness:
-        path: /management/health
+        path: /
         initialDelaySeconds: 30
         periodSeconds: 10
         failureThreshold: 10
@@ -59,8 +59,8 @@ microservices:
          protocol: http
          type: ClusterIP
          port: 80
-         targetPort: 8080
-         monitor: /management/prometheus
+         targetPort: 80
+         monitor: /
          monitorInterval: 10s
       hazelcast:
          name: hazelcast-service
@@ -71,5 +71,3 @@ microservices:
     ingress:
       domainName: esimqr-api.prodmicroservices.entel.pe
       certificateName: wildcard
-ociSecret:
-  name: ocir

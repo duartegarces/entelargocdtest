@@ -2,11 +2,6 @@
 labels:
   app: {{ .name | default .name }}
   version: {{ .version | default "v1" }}
-  {{- with .labels }}
-  {{- range $key, $value := . }}
-  {{ $key }}: {{ $value }}
-  {{- end }}
-  {{- end }}
 {{- end }}
 
 {{- define "template.annotations" }}

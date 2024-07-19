@@ -12,7 +12,7 @@ metadata:
   {{- include "template.labels" $data | indent 2 }}
 data:
 {{- range $key, $value := .env }}
-  {{ $key }} : {{ $value | indent 4 }}
+  {{ $key }}: "{{ $value }}"
 {{- end }}
 {{- end }}
 {{- end }}

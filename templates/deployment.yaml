@@ -1,0 +1,103 @@
+{{- range .Values.microservices }}
+{{- $name := .name }}
+{{- with .deployment }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name | default $name }}
+  {{- $data := dict "root" . "name" $name }}
+  {{- include "template.labels" $data | indent 2 }}
+  {{- include "template.annotations" $data | indent 2 }}
+spec:
+  {{- if .minReadySeconds }}
+  minReadySeconds: {{ .minReadySeconds }}
+  {{- end }}
+  {{- if .progressDeadlineSeconds }}
+  progressDeadlineSeconds: {{ .progressDeadlineSeconds }}
+  {{- end }}
+  {{- if .revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .revisionHistoryLimit }}
+  {{- end }}
+  replicas: {{ .replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .name | default $name }}
+      version: {{ .version | default "v1" }}
+      {{- with .matchLabels }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+      {{- end }}
+  {{- if .strategy }}
+  strategy:
+    type: {{ .strategy.type | default "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .strategy.rollingUpdate.maxSurge | default "25%" }}
+      maxUnavailable: {{ .strategy.rollingUpdate.maxUnavailable | default "25%" }}
+  {{- end }}
+  template:
+    metadata:
+      {{- include "template.labels" $data | indent 6 }}
+      {{- include "template.annotations" $data | indent 6 }}
+    spec:
+      affinity:
+        {{- if .affinity }}
+        {{- toYaml .affinity | nindent 8 }}
+        {{- else }}
+        {{- toYaml $.Values.common.affinity | nindent 8 }}
+        {{- end }}
+      tolerations:
+        {{- if .tolerations }}
+        {{- range .tolerations }}
+        - key: "{{ .key }}"
+          operator: "{{ .operator }}"
+          value: "{{ .value }}"
+          effect: "{{ .effect }}"
+        {{- end }}
+        {{- else }}
+        {{- range $.Values.common.tolerations }}
+        - key: "{{ .key }}"
+          operator: "{{ .operator }}"
+          value: "{{ .value }}"
+          effect: "{{ .effect }}"
+        {{- end }}
+        {{- end }}
+      {{- with .serviceAccountName }}
+      serviceAccountName: {{ . }}
+      {{- end }}
+      containers:
+      - name: {{ .name | default $name }}
+        image: {{ .image }}
+        {{- with .command }}
+        command:
+        {{- range . }}
+          - {{ . }}
+        {{- end }}
+        {{- end }}
+        imagePullPolicy: Always
+        {{- if .configmap }}
+        {{- $envData := dict "root" . }}
+        {{- include "template.environment" $envData | indent 8 }}
+        {{- end }}
+        {{- if .ports }}
+        {{- include "template.ports" . | indent 8 }}
+        {{- end }}
+        {{- include "template.securityContext" . | indent 8 }}
+        {{- if .volumeMounts }}
+        {{- include "template.volumeMounts" . | indent 8 }}
+        {{- end }}
+        {{- if and .probe .probe.startup }}
+        {{- include "template.startupProbe" . | indent 8 }}
+        {{- end }}
+        {{- if and .probe .probe.liveness }}
+        {{- include "template.livenessProbe" . | indent 8 }}
+        {{- end }}
+        {{- if and .probe .probe.readiness }}
+        {{- include "template.readinessProbe" . | indent 8 }}
+        {{- end }}
+      {{- if .volumes }}
+      {{- include "template.volumes" . | indent 6 }}
+      {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,44 @@
+{{- range .Values.microservices }}
+{{- $name := .name }}
+{{- $svc := .services.esim }}
+{{- with .ingress }}
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: in-{{ .name | default $name }}
+  namespace: {{ $.Values.namespace }}
+  {{- $data := dict "name" $name "labels" .labels "annotations" .annotations }}
+  {{- include "template.labels" $data | indent 2 }}
+  {{- if .annotations }}
+  annotations:
+    {{- range $key, $value := .annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  rules:
+  - host: {{ .domainName }}
+    http:
+      paths:
+      - path: {{ .path | default "/" }}
+        backend:
+          serviceName: {{ $svc.name }}
+          servicePort: {{ $svc.port | default 80 }}
+  {{- if .domainNameHttps }}
+  - host: {{ .domainNameHttps }}
+    http:
+      paths:
+      - path: {{ .path | default "/" }}
+        backend:
+          serviceName: {{ $svc.name }}
+          servicePort: {{ $svc.port | default 80 }}
+  tls:
+  - hosts:
+    - {{ .domainNameHttps }}
+    secretName: {{ .tlsSecretName | default "default-tls-secret" }}
+  {{- end }}
+{{- end }}
+{{- end }}

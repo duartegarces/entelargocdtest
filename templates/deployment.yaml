@@ -6,8 +6,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .name | default $name }}
+  labels:
+    app: {{ .name | default $name }}
+    version: {{ .version | default "v1" }}
   {{- $data := dict "root" . "name" $name }}
-  {{- include "template.labels" $data | indent 2 }}
   {{- include "template.annotations" $data | indent 2 }}
 spec:
   {{- if .minReadySeconds }}
@@ -33,7 +35,9 @@ spec:
   {{- end }}
   template:
     metadata:
-      {{- include "template.labels" $data | indent 6 }}
+      labels:
+        app: {{ .name | default $name }}
+        version: {{ .version | default "v1" }}
       {{- include "template.annotations" $data | indent 6 }}
     spec:
       affinity:

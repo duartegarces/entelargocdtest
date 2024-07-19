@@ -73,7 +73,7 @@ startupProbe:
 livenessProbe:
   httpGet:
     path: {{ .probe.liveness.path }}
-    port: {{ .containerPort }}
+    port: {{ $.containerPort }}
   initialDelaySeconds: {{ .probe.liveness.initialDelaySeconds }}
   periodSeconds: {{ .probe.liveness.periodSeconds }}
 {{- end }}
@@ -84,7 +84,7 @@ livenessProbe:
 readinessProbe:
   httpGet:
     path: {{ .probe.readiness.path }}
-    port: {{ .containerPort }}
+    port: {{ $.containerPort }}
   initialDelaySeconds: {{ .probe.readiness.initialDelaySeconds }}
   periodSeconds: {{ .probe.readiness.periodSeconds }}
 {{- end }}

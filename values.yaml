@@ -4,7 +4,7 @@ microservices:
   esim:
     name: esim
     image: nginx
-    version: 1.1.6
+    version: latest
     pullPolicy: Always
     replicaCount: 5
     containerPort: 8080

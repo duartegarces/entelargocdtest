@@ -1,29 +1,62 @@
 project: esim
 namespace: esim
+
+common:
+  affinity: {}
+  tolerations: []
+  rbac:
+    clusterRoleBindings:
+      - name: esim-role-binding
+        clusterRole: view
+        serviceAccountName: default
+        namespace: esim
+        apiGroup: rbac.authorization.k8s.io
+        kind: ServiceAccount
+
 microservices:
   esim:
     name: esim
-    image: nginx
-    version: latest
-    pullPolicy: Always
-    replicaCount: 5
-    containerPort: 80
-    containerHZCPort: 5701
-    mountPath: /etc/localtime
-    volumeName: tz-config
-    volumePath: /usr/share/zoneinfo/
-    timeZoneValue: America/Lima
-    probe:
-      readiness:
-        path: /
-        initialDelaySeconds: 30
-        periodSeconds: 10
-        failureThreshold: 10
-      liveness:
-        path: /
-        initialDelaySeconds: 30
-        periodSeconds: 10
-        failureThreshold: 10
+    deployment:
+      image: nginx
+      version: latest
+      pullPolicy: Always
+      replicas: 5
+      containerPort: 80
+      containerHZCPort: 5701
+      volumes:
+        - name: tz-config
+          hostPath:
+            path: /usr/share/zoneinfo/
+      volumeMounts:
+        - name: tz-config
+          mountPath: /etc/localtime
+      timeZoneValue: America/Lima
+      envFromSecret:
+        - name: DATABASE_URL
+          secretKeyRef:
+            name: bd-secret-esim
+            key: bd-secret
+        - name: APIM_SECRET_KEY
+          secretKeyRef:
+            name: apim-shared-secret-esim
+            key: apim-shared-secret
+        - name: APIM_SECRET_CLIENT_ID
+          secretKeyRef:
+            name: apim-clientid-secret-esim
+            key: apim-clientid-secret
+      probe:
+        readiness:
+          path: /
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 10
+        liveness:
+          path: /
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 10
+      annotations:
+        reloader.stakater.com/auto: "true"
     configmap:
       env:
         ECOSYSTEM_NAME: "esimqr-prod-pe"
@@ -55,19 +88,32 @@ microservices:
         QUEUE_CAPACITY: "20"
     services:
       esim:
-         name: esim-service
-         protocol: http
-         type: ClusterIP
-         port: 80
-         targetPort: 80
-         monitor: /
-         monitorInterval: 10s
+        name: esim-service
+        protocol: http
+        type: ClusterIP
+        port: 80
+        targetPort: 80
       hazelcast:
-         name: hazelcast-service
-         protocol: http
-         port: 5701
-         type: ClusterIP
-         targetPort: 5701
+        name: hazelcast-service
+        protocol: http
+        port: 5701
+        type: ClusterIP
+        targetPort: 5701
+    serviceMonitor:
+      name: metrics-esim
+      namespace: cattle-prometheus
+      labels:
+        heritage: Tiller
+        "io.cattle.field/appId": cluster-monitoring
+        release: prometheus-operator
+      endpoints:
+        - interval: 10s
+          port: http
+          path: /
     ingress:
-      domainName: "esimqr-api.prodmicroservices.entel.pe"
-      certificateName: "wildcard"
+      domainName: esimqr-api.prodmicroservices.entel.pe
+      certificateName: wildcard
+    secrets:
+      bd-secret: amJiYzpvcmFjbGU6dGhpbjpFU0lNL3pWNnVEM2NLNF9pTzFqVzVvQDE3Mi4zMC4yNi41NjoxNTIxOk1TUFJE
+      apim-clientid-secret: bmY1bE5RTlZmT0wyNHNsN3VpTWRQVThnd0R3VnFTb29ENFB4bW1jdEd3aHpoMU51
+      apim-shared-secret: U0dOOUt3TWlybExyTEJoTllyd2YzaEVycEVOcnVWNEFHTnFTdUNtZGVrd05SQUFKNUI4Q1hMZHRRNmhWRjZWTw==

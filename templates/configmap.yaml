@@ -1,12 +1,18 @@
+{{- range .Values.microservices }}
+{{- $name := .name }}
+{{- with .configmap }}
+
+---
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cm-{{ .Values.microservices.esim.name }}
-  namespace: {{ .Values.namespace }}
-  labels:
-    app.kubernetes.io/instance: {{ .Values.microservices.esim.name }}
-    project: {{ .Values.project }}
+  name: cm-{{ default $name .name }}
+  {{- $data := dict "root" . "name" $name }}
+  {{- include "template.labels" $data | indent 2 }}
 data:
-{{- range $key, $value := .Values.microservices.esim.configmap.env }}
-  {{ $key }}: {{ $value | quote }}
+{{- range $key, $value := .env }}
+  {{ $key }} : {{ $value | indent 4 }}
+{{- end }}
+{{- end }}
 {{- end }}

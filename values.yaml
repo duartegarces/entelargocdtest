@@ -23,14 +23,6 @@ microservices:
       replicas: 5
       containerPort: 80
       containerHZCPort: 5701
-      volumes:
-        - name: tz-config
-          hostPath:
-            path: /usr/share/zoneinfo/
-      volumeMounts:
-        - name: tz-config
-          mountPath: /etc/localtime
-      timeZoneValue: America/Lima
       envFromSecret:
         - name: DATABASE_URL
           secretKeyRef:
@@ -111,9 +103,9 @@ microservices:
           port: http
           path: /
     ingress:
-      domainName: esimqr-api.prodmicroservices.entel.pe
-      certificateName: wildcard
+      domainName: "esimqr-api.prodmicroservices.entel.pe"
+      certificateName: "wildcard"
     secrets:
-      bd-secret: amJiYzpvcmFjbGU6dGhpbjpFU0lNL3pWNnVEM2NLNF9pTzFqVzVvQDE3Mi4zMC4yNi41NjoxNTIxOk1TUFJE
-      apim-clientid-secret: bmY1bE5RTlZmT0wyNHNsN3VpTWRQVThnd0R3VnFTb29ENFB4bW1jdEd3aHpoMU51
-      apim-shared-secret: U0dOOUt3TWlybExyTEJoTllyd2YzaEVycEVOcnVWNEFHTnFTdUNtZGVrd05SQUFKNUI4Q1hMZHRRNmhWRjZWTw==
+      bd-secret: "amJiYzpvcmFjbGU6dGhpbjpFU0lNL3pWNnVEM2NLNF9pTzFqVzVvQDE3Mi4zMC4yNi41NjoxNTIxOk1TUFJE"
+      apim-clientid-secret: "bmY1bE5RTlZmT0wyNHNsN3VpTWRQVThnd0R3VnFTb29ENFB4bW1jdEd3aHpoMU51"
+      apim-shared-secret: "U0dOOUt3TWlybExyTEJoTllyd2YzaEVycEVOcnVWNEFHTnFTdUNtZGVrd05SQUFKNUI4Q1hMZHRRNmhWRjZWTw=="
